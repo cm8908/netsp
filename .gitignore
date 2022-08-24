@@ -1,0 +1,14 @@
+__pycache__/global_utils.cpython-310.pyc
+__pycache__/litdata.cpython-310.pyc
+__pycache__/litmodule.cpython-310.pyc
+__pycache__/model.cpython-310.pyc
+lightning_logs/version_0/events.out.tfevents.1661325262.icvm2.9750.0
+lightning_logs/version_0/hparams.yaml
+lightning_logs/version_0/checkpoints/epoch=9-step=100000.ckpt
+lightning_logs/version_1/events.out.tfevents.1661343735.icvm2.30435.0
+lightning_logs/version_1/hparams.yaml
+lightning_logs/version_1/checkpoints/epoch=1-step=20000.ckpt
+_model.py
+empty_file.ipynb
+global_utils.py
+timecheck.ipynb
