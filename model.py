@@ -1,3 +1,5 @@
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 import torch
 from torch import nn
 from einops import rearrange
@@ -5,13 +7,13 @@ from einops.layers.torch import Rearrange
 
 
 class Encoder(nn.Module):
-    def __init__(self, d_h, bsz, seq_len, batch_first):
+    def __init__(self, d_h, bsz, seq_len, n_layer, batch_first):
         super().__init__()
-        self.lstm = nn.LSTM(input_size=d_h, hidden_size=d_h, num_layers=seq_len, batch_first=batch_first)
+        self.lstm = nn.LSTM(input_size=d_h, hidden_size=d_h, num_layers=n_layer, batch_first=batch_first)
         self.batch_first = batch_first
 
-        self.h0 = nn.Parameter(torch.randn(seq_len, bsz, d_h))
-        self.c0 = nn.Parameter(torch.randn(seq_len, bsz, d_h))
+        self.h0 = nn.Parameter(torch.randn(n_layer, bsz, d_h))
+        self.c0 = nn.Parameter(torch.randn(n_layer, bsz, d_h))
         pass
     
     def forward(self, enc_inp):
@@ -51,7 +53,7 @@ class Attention(nn.Module):
 
 
 class NETSP(nn.Module):
-    def __init__(self, d_h, bsz, seq_len, batch_first=True):
+    def __init__(self, d_h, bsz, seq_len, n_layer, batch_first=True, *args, **kwargs):
         super().__init__()
         self.d_h = d_h
         self.seq_len = seq_len
@@ -62,7 +64,7 @@ class NETSP(nn.Module):
         self.c_dec0 = nn.Parameter(torch.randn(bsz, d_h))
 
         self.conv_embedding = nn.Conv1d(in_channels=2, out_channels=d_h, kernel_size=5, padding=2, padding_mode='circular')
-        self.encoder = Encoder(d_h, bsz, seq_len, batch_first)
+        self.encoder = Encoder(d_h, bsz, seq_len, n_layer, batch_first)
         self.decoder_lstm = nn.LSTMCell(input_size=d_h, hidden_size=d_h)
         self.attention = Attention(d_h)
     
@@ -85,6 +87,7 @@ class NETSP(nn.Module):
         heatmap = []
 
         for t in range(self.seq_len):
+            # TODO: teacher forcing?
             h_t, c_t = self.decoder_lstm(dec_inp, (h_t, c_t))  # (B, H)
 
             probs = self.attention(h_t, enc_out, mask)  # (B, L)
@@ -104,15 +107,27 @@ class NETSP(nn.Module):
         return tour, heatmap
 
 if __name__ == '__main__':
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     bsz, seq_len, d_h = 100, 15, 128
     x = torch.rand(bsz, 2, seq_len).to(device)
-    target = torch.randint(0,50, (bsz, seq_len)).to(device)
+    target = torch.randint(0,seq_len, (bsz, seq_len)).to(device)
+    model = NETSP(d_h=d_h, bsz=bsz, seq_len=seq_len, n_layer=256).to(device)
+    crit = nn.NLLLoss()
+    oz = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    model = NETSP(d_h=d_h, bsz=bsz, seq_len=seq_len).to(device)
-    tour, heatmap = model(x)
-    from global_utils import compute_tour_length
-    print(compute_tour_length(x.permute(0,2,1), tour)[0])
-    print(tour[0])
-    print(tour.shape)
-    print(heatmap.shape)
+    for e in range(1000):
+        oz.zero_grad()
+        tour, heatmap = model(x)
+        loss = crit(heatmap, target)
+        loss.backward()
+        oz.step()
+        if e % 100 == 0:
+            print(loss.mean().item())
+        
+
+    # tour, heatmap = model(x)
+    # from global_utils import compute_tour_length
+    # print(compute_tour_length(x.permute(0,2,1), tour)[0])
+    # print(tour[0])
+    # print(tour.shape)
+    # print(heatmap.shape)

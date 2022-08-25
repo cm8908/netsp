@@ -20,29 +20,29 @@ class LitNETSP(pl.LightningModule):
     def add_model_arguments(parent_parser):
         parser = parent_parser.add_argument_group('Model')
         parser.add_argument('--d_hidden', type=int, default=128)
+        parser.add_argument('--n_layer', type=int, default=256, help='number of encoder lstm layers')
         parser.add_argument('--seq_len', type=int, default=10)
         parser.add_argument('--bsz', type=int, default=100)
         parser.add_argument('--lr', type=float, default=1e-3)
         return parent_parser
 
-    def compute_tour_length(self, tour, x):
+    def compute_tour_length(self, tour, x): 
         """
         tour : (B, N)
         x : (B, 2, N)
         """
-        tour = tour.cpu().numpy()
-        x = x.cpu().numpy()
         bsz = x.shape[0]
         nb_nodes = x.shape[2]
-        toB = np.arange(bsz)
-        first_cities = x[toB, :,  tour[:,0]] # size(first_cities)=(bsz,2)
+        arange_vec = torch.arange(bsz, device=x.device)
+        first_cities = x[arange_vec, :, tour[:,0]] # size(first_cities)=(bsz,2)
         previous_cities = first_cities
-        L = np.zeros(bsz)
-        for i in range(1,nb_nodes):
-            current_cities = x[toB, :, tour[:,i]] 
-            L += np.sum( (current_cities - previous_cities)**2 , axis=1 )**0.5 # dist(current, previous node) 
-            previous_cities = current_cities
-        L += np.sum( (current_cities - first_cities)**2 , axis=1 )**0.5 # dist(last, first node)  
+        L = torch.zeros(bsz, device=x.device)
+        with torch.no_grad():
+            for i in range(1,nb_nodes):
+                current_cities = x[arange_vec, :, tour[:,i]] 
+                L += torch.sum( (current_cities - previous_cities)**2 , dim=1 )**0.5 # dist(current, previous node) 
+                previous_cities = current_cities
+            L += torch.sum( (current_cities - first_cities)**2 , dim=1 )**0.5 # dist(last, first node)  
         return L
     
     def training_step(self, batch, batch_idx):
@@ -50,6 +50,7 @@ class LitNETSP(pl.LightningModule):
         tour, heatmap = self.model(x)  # (B, L), (B, L, L)
         loss = F.nll_loss(heatmap, target)
         tour_len = self.compute_tour_length(tour, x)
+        self.log('tour_len', tour_len.mean(), prog_bar=True, on_step=True)  # TODO:
         return {'loss': loss, 'tour_len': tour_len}
     
     def validation_step(self, batch, batch_idx):
@@ -57,7 +58,8 @@ class LitNETSP(pl.LightningModule):
         tour, heatmap = self.model(x)
         val_loss = F.nll_loss(heatmap, target)
         tour_len = self.compute_tour_length(tour, x)
-        self.log_dict({'val_loss': val_loss.mean().item(), 'val_tour_len': tour_len.mean().item()})
+        # self.log_dict({'val_loss': val_loss.mean().item(), 'val_tour_len': tour_len.mean().item()})
+        self.log_dict({'val_loss': val_loss.mean(), 'val_tour_len': tour_len.mean()})
     
     def test_step(self, batch, batch_idx):
         x, target = batch
