@@ -48,9 +48,9 @@ class TSPDataset(Dataset):
         return self.data[idx], self.label[idx]
 
 class LitTSPDataModule(LightningDataModule):
-    def __init__(self, n, bsz, num_workers, train_ratio):
+    def __init__(self, seq_len, bsz, train_ratio, num_workers, **kwargs):
         super().__init__()
-        self.n = n
+        self.n = seq_len
         self.batch_size = bsz
         self.train_ratio = train_ratio
         self.num_workers = num_workers

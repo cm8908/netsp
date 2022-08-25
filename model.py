@@ -1,3 +1,8 @@
+"""
+B : batch size
+L : sequence length (=number of points)
+H : hidden dimension
+"""
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 import torch
@@ -50,34 +55,41 @@ class Attention(nn.Module):
         if mask is not None:
             u_i.masked_fill_(mask, float('-1e9'))  # (B, L)
         return torch.log_softmax(u_i, dim=-1)
+        # return u_i
 
 
 class NETSP(nn.Module):
-    def __init__(self, d_h, bsz, seq_len, n_layer, batch_first=True, *args, **kwargs):
+    def __init__(self, d_hidden, bsz, seq_len, n_layer, batch_first=True, **kwargs):
         super().__init__()
-        self.d_h = d_h
+        self.d_h = d_hidden
         self.seq_len = seq_len
 
-        self.start_token = nn.Parameter(torch.randn(bsz, d_h))
+        self.start_token = nn.Parameter(torch.randn(bsz, d_hidden))
 
-        self.h_dec0 = nn.Parameter(torch.randn(bsz, d_h))
-        self.c_dec0 = nn.Parameter(torch.randn(bsz, d_h))
+        self.h_dec0 = nn.Parameter(torch.randn(bsz, d_hidden))
+        self.c_dec0 = nn.Parameter(torch.randn(bsz, d_hidden))
 
-        self.conv_embedding = nn.Conv1d(in_channels=2, out_channels=d_h, kernel_size=5, padding=2, padding_mode='circular')
-        self.encoder = Encoder(d_h, bsz, seq_len, n_layer, batch_first)
-        self.decoder_lstm = nn.LSTMCell(input_size=d_h, hidden_size=d_h)
-        self.attention = Attention(d_h)
+        self.embedding = nn.Conv1d(in_channels=2, out_channels=d_hidden, kernel_size=5, padding=2, padding_mode='circular')
+        # self.embedding = nn.Sequential(
+        #     Rearrange('b c n -> b n c'),
+        #     nn.Linear(2, d_h),
+        #     Rearrange('b n h -> b h n')
+        # )
+        self.encoder = Encoder(d_hidden, bsz, seq_len, n_layer, batch_first)
+        self.decoder_lstm = nn.LSTMCell(input_size=d_hidden, hidden_size=d_hidden)
+        self.attention = Attention(d_hidden)
     
-    def forward(self, x):
+    def forward(self, x, target):
         '''
         x : (B, 2, L)
+        target : (B, L)
         size notations below are for batch_first=True
         '''
         toB = torch.arange(x.size(0))
 
-        x_emb = self.conv_embedding(x)  # (B, H, L)
+        x_emb = self.embedding(x)  # (B, H, L)
 
-        enc_out, (h_enc, c_enc) = self.encoder(x_emb)  # (B, L, H), (n_layers, B, H)
+        enc_out, enc_hid = self.encoder(x_emb)  # (B, L, H), (n_layers, B, H)
         
         dec_inp = self.start_token  # (B, H)
         h_t, c_t = self.h_dec0, self.c_dec0  # (B, H)
@@ -97,7 +109,8 @@ class NETSP(nn.Module):
             city = probs.argmax(dim=-1)  # (B)
             tour.append(city.unsqueeze(-1))  # list of (B, 1)
 
-            dec_inp = enc_out[toB, city, :]  # (B, H)
+            # dec_inp = enc_out[toB, city, :]  # (B, H)
+            dec_inp = enc_out[toB, target[:,t], :]  # (B, H) teacher forcing
             mask = mask.clone()
             mask[toB, city] = True
         
@@ -111,13 +124,14 @@ if __name__ == '__main__':
     bsz, seq_len, d_h = 100, 15, 128
     x = torch.rand(bsz, 2, seq_len).to(device)
     target = torch.randint(0,seq_len, (bsz, seq_len)).to(device)
-    model = NETSP(d_h=d_h, bsz=bsz, seq_len=seq_len, n_layer=256).to(device)
+    model = NETSP(d_h=d_h, bsz=bsz, seq_len=seq_len, n_layer=1).to(device)
     crit = nn.NLLLoss()
+    # crit = nn.CrossEntropyLoss()
     oz = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for e in range(1000):
         oz.zero_grad()
-        tour, heatmap = model(x)
+        tour, heatmap = model(x, target)
         loss = crit(heatmap, target)
         loss.backward()
         oz.step()

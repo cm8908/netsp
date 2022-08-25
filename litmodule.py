@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 
 
 class LitNETSP(pl.LightningModule):
-    def __init__(self, model: NETSP, lr: float=1e-3):
+    def __init__(self, model, lr, **kwargs):
         super().__init__()
         self.model = model
         self.lr = lr
@@ -47,7 +47,7 @@ class LitNETSP(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         x, target = batch  # (B, 2, L), (B, L)
-        tour, heatmap = self.model(x)  # (B, L), (B, L, L)
+        tour, heatmap = self.model(x, target)  # (B, L), (B, L, L)
         loss = F.nll_loss(heatmap, target)
         tour_len = self.compute_tour_length(tour, x)
         self.log('tour_len', tour_len.mean(), prog_bar=True, on_step=True)  # TODO:
@@ -55,7 +55,7 @@ class LitNETSP(pl.LightningModule):
     
     def validation_step(self, batch, batch_idx):
         x, target = batch
-        tour, heatmap = self.model(x)
+        tour, heatmap = self.model(x, target)
         val_loss = F.nll_loss(heatmap, target)
         tour_len = self.compute_tour_length(tour, x)
         # self.log_dict({'val_loss': val_loss.mean().item(), 'val_tour_len': tour_len.mean().item()})
@@ -63,14 +63,14 @@ class LitNETSP(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
         x, target = batch
-        tour, heatmap = self.model(x)
+        tour, heatmap = self.model(x, target)
         test_loss = F.nll_loss(heatmap, target)
         tour_len = self.compute_tour_length(tour, x)
         self.log_dict({'test_loss': test_loss.mean().item(), 'test_tour_len': tour_len.mean().item()})
     
     def predict_step(self, batch):
         x, target = batch
-        tour, heatmap = self.model(x)
+        tour, heatmap = self.model(x, target)
         return tour
 
     def configure_optimizers(self):

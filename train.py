@@ -14,24 +14,20 @@ from litdata import LitTSPDataModule
 # Logger version & directory names
 # https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html#default-root-dir
 
+# Trainer
+# https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html
+
 def main(args):
+    dict_args = vars(args)
     # logger = TensorBoardLogger()
     trainer = pl.Trainer.from_argparse_args(args)
 
-    model = LitNETSP(
-        model = NETSP(
-            d_h=args.d_hidden,
-            bsz=args.bsz,
-            seq_len=args.seq_len
-        ),
-        lr=args.lr
-    )
-    dm = LitTSPDataModule(
-        n=args.seq_len,
-        bsz=args.bsz, 
-        num_workers=args.num_workers, 
-        train_ratio=args.train_ratio
-    )
+    if args.model_name == 'netsp':
+        args.model = NETSP(**dict_args)
+
+    model = LitNETSP(**dict_args)
+    dm = LitTSPDataModule(**dict_args)
+
 
     trainer.fit(model, dm)
 
@@ -39,6 +35,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     # Program specific arguments
     parser.add_argument('--gpu_id', type=str, default='7')
+    parser.add_argument('--model_name', type=str, default='netsp')
     # parser.add_argument('--version', type=int, default=999)
     # Model specific arguments
     parser = LitNETSP.add_model_arguments(parser)
