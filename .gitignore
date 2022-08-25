@@ -12,3 +12,9 @@ _model.py
 empty_file.ipynb
 global_utils.py
 timecheck.ipynb
+lightning_logs/version_1/checkpoints/epoch=2-step=30000.ckpt
+lightning_logs/version_0/events.out.tfevents.1661346359.icvm2.38536.0
+lightning_logs/version_0/checkpoints/epoch=138-step=1382500.ckpt
+lightning_logs/version_1/events.out.tfevents.1661405655.icvm2.6568.0
+lightning_logs/version_1/checkpoints/epoch=0-step=2500.ckpt
+lightning_logs/
