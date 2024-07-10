@@ -3,6 +3,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from pytorch_lightning import LightningDataModule
+from dataclasses import dataclass
 class TSPDataset(Dataset):
     """
     B = total length of dataset
@@ -11,12 +12,12 @@ class TSPDataset(Dataset):
     n : {10, 20, 30, 50, 100}
     Return: data, label indices  #, distance matrix, modified adjacency matrix, adjacency matrix, label tour length
     """
-    def __init__(self, n, mode, root_dir='../tspxl/datasets', author='joshi'):
-        if n >= 50 and mode in ['train', 'val']:
+    def __init__(self, n, mode, root_dir='./datasets', author='PN'):
+        if mode in ['train', 'val']:
             basename = f'tsp{n}_concorde.txt'
         else:
             basename = f'tsp{n}_{mode}_concorde.txt'
-        filename = os.path.join(root_dir, author+'-data', basename)
+        filename = os.path.join(root_dir, author, basename)
         self.n = n
         self.data = []
         self.label = []
@@ -55,13 +56,7 @@ class LitTSPDataModule(LightningDataModule):
         self.train_ratio = train_ratio
         self.num_workers = num_workers
     
-    @staticmethod
-    def add_data_arguments(parent_parser):
-        parser = parent_parser.add_argument_group('DataModule')
-        parser.add_argument('--num_workers', type=int, default=0)
-        parser.add_argument('--train_ratio', type=float, default=0.8)
-        return parent_parser
-    
+   
     def setup(self, stage):
         print('Loading dataset from file')
         if stage == 'fit':

@@ -11,20 +11,23 @@ from torch.utils.data import Dataset
 
 
 class LitNETSP(pl.LightningModule):
-    def __init__(self, model, lr, **kwargs):
+    def __init__(self, model_name, lr, **kwargs):
         super().__init__()
-        self.model = model
+        if model_name == 'netsp':
+            self.model = NETSP(**kwargs)
+        else:
+            raise ValueError(f'Unknown model name {model_name}')
         self.lr = lr
     
-    @staticmethod
-    def add_model_arguments(parent_parser):
-        parser = parent_parser.add_argument_group('Model')
-        parser.add_argument('--d_hidden', type=int, default=128)
-        parser.add_argument('--n_layer', type=int, default=256, help='number of encoder lstm layers')
-        parser.add_argument('--seq_len', type=int, default=10)
-        parser.add_argument('--bsz', type=int, default=100)
-        parser.add_argument('--lr', type=float, default=1e-3)
-        return parent_parser
+    # @staticmethod
+    # def add_model_arguments(parent_parser):
+    #     parser = parent_parser.add_argument_group('Model')
+    #     parser.add_argument('--d_hidden', type=int, default=128)
+    #     parser.add_argument('--n_layer', type=int, default=256, help='number of encoder lstm layers')
+    #     parser.add_argument('--seq_len', type=int, default=10)
+    #     parser.add_argument('--bsz', type=int, default=100)
+    #     parser.add_argument('--lr', type=float, default=1e-3)
+    #     return parent_parser
 
     def compute_tour_length(self, tour, x): 
         """

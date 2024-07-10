@@ -1,0 +1,20 @@
+# pytorch_lightning==2.3.0
+seed_everything: true
+trainer:
+  accelerator: gpu
+  strategy: auto
+  devices: auto
+  num_nodes: 1
+model:
+  model_name: netsp
+  lr: 1e-3
+  d_hidden: 128
+  bsz: 100
+  seq_len: 10
+  n_layer: 256
+  batch_first: true
+data:
+  seq_len: 10
+  bsz: 100
+  train_ratio: 0.8
+  num_workers: 0
