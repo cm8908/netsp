@@ -2,8 +2,7 @@ import torch
 import os
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from pytorch_lightning import LightningDataModule
-from dataclasses import dataclass
+from lightning import LightningDataModule
 class TSPDataset(Dataset):
     """
     B = total length of dataset

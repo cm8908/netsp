@@ -1,16 +1,12 @@
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'
-
 import torch
-import numpy as np
 import torch.nn.functional as F
-import pytorch_lightning as pl
+import lightning as L
 from litdata import LitTSPDataModule
 from model import NETSP
 from torch.utils.data import Dataset
 
 
-class LitNETSP(pl.LightningModule):
+class LitNETSP(L.LightningModule):
     def __init__(self, model_name, lr, **kwargs):
         super().__init__()
         if model_name == 'netsp':
@@ -90,5 +86,5 @@ if __name__ == '__main__':
     batch_first = True
     model = LitNETSP(NETSP(d_h, bsz, n, batch_first))
     dm = LitTSPDataModule(n, bsz, num_workers=40)
-    trainer = pl.Trainer(max_epochs=-1, accelerator='cpu', devices=1)
+    trainer = L.Trainer(max_epochs=-1, accelerator='cpu', devices=1)
     trainer.fit(model, dm)

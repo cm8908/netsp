@@ -3,8 +3,9 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: auto
+  devices: 0
   num_nodes: 1
+  logger: False
 model:
   model_name: netsp
   lr: 1e-3

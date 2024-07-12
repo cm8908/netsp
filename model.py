@@ -7,8 +7,8 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 import torch
 from torch import nn
-from einops import rearrange
-from einops.layers.torch import Rearrange
+# from einops import rearrange
+# from einops.layers.torch import Rearrange
 
 
 class Encoder(nn.Module):
