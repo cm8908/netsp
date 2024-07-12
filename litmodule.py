@@ -3,8 +3,6 @@ import torch.nn.functional as F
 import lightning as L
 from litdata import LitTSPDataModule
 from model import NETSP
-from torch.utils.data import Dataset
-
 
 class LitNETSP(L.LightningModule):
     def __init__(self, model_name, lr, **kwargs):

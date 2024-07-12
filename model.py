@@ -3,8 +3,6 @@ B : batch size
 L : sequence length (=number of points)
 H : hidden dimension
 """
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 import torch
 from torch import nn
 # from einops import rearrange

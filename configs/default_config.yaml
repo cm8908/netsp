@@ -3,7 +3,7 @@ seed_everything: true
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: 0
+  devices: 4
   num_nodes: 1
   logger: False
 model:
